@@ -1,7 +1,7 @@
-#Bot application:
-##About
-Blabla bla bla bla
-##Dev team:
+# Bot application:
+## About
+VK API Client for open area sales
+## Dev team:
     - Шадрин Владислав - irdash.v@gmail.com
     - Колищук Вадим	- legenda2121@mail.ru
     - Ершов Роман - roman.ershov.1998@mail.ru
@@ -11,5 +11,5 @@ Blabla bla bla bla
 ## Project details:
     - VK group - https://vk.com/public177887675
     - Trello board - https://trello.com/b/TUOktaMf/vk-bot
-## Run instruactions:
+## Run instructions:
 `mvnw clean spring-boot:run`
