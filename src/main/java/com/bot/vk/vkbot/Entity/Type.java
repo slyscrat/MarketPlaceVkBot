@@ -13,21 +13,39 @@ import javax.persistence.Table;
 public class Type {
 
     @Id
-    @Getter
-    @Setter
     private int typeID;
 
     @Column
-    @Getter
-    @Setter
     private String name;
 
     @Column
-    @Getter
-    @Setter
     private String description;
 
     public Type(){
 
+    }
+
+    public int getTypeID() {
+        return typeID;
+    }
+
+    public void setTypeID(int typeID) {
+        this.typeID = typeID;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
