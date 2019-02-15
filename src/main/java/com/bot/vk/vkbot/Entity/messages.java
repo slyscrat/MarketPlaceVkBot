@@ -1,30 +1,29 @@
 package com.bot.vk.vkbot.Entity;
 
+import java.io.Serializable;
 import java.util.Date;
-
+import java.util.Set;
 import javax.persistence.*;
 
 
 @Entity
 @Table(name = "messages")
-public class Messages {
+public class messages implements Serializable {
 
     @Id
     @Column
     private Date date;
 
-    @Id
     @Column
-    private int userId;
+    private Integer userId;
 
     @Column
     private String message;
 
-    @ManyToOne
-    @JoinColumn(name = "ITEM_ID")
-    private int itemId;
+    @OneToMany(mappedBy = "Messages", fetch = FetchType.LAZY)
+    private Set<item> items;
 
-    public Messages(){
+    public messages(){
 
     }
 
@@ -52,11 +51,11 @@ public class Messages {
         this.message = message;
     }
 
-    public int getItemId() {
-        return itemId;
+    public Set<item> getItems() {
+        return items;
     }
 
-    public void setItemId(int itemId) {
-        this.itemId = itemId;
+    public void setItems(Set<item> items) {
+        this.items = items;
     }
 }

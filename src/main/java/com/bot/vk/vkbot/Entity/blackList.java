@@ -4,19 +4,19 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "blackList")
-public class BlackList {
+public class blackList implements Serializable{
 
     @Id
-    @Column
     private int userId;
 
     @Column
     private int warnings;
 
-    public BlackList(){
+    public blackList(){
 
     }
 

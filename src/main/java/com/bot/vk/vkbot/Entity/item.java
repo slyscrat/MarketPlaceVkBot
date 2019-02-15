@@ -1,14 +1,17 @@
 package com.bot.vk.vkbot.Entity;
 
+import org.springframework.jmx.export.annotation.ManagedAttribute;
+
 import javax.persistence.*;
+import java.io.Serializable;
 import java.util.Set;
 
 @Entity
 @Table(name = "item")
-public class Item {
+public class item implements Serializable {
 
     @Id
-    private int itemId;
+    private int id;
 
     @Column
     private int userId;
@@ -17,7 +20,7 @@ public class Item {
     private String description;
 
     @Column
-    private String picture;
+    private int picture;
 
     @Column
     private float price;
@@ -25,20 +28,17 @@ public class Item {
     @Column
     private Boolean isSold;
 
-    @OneToMany(mappedBy = "type")
-    private Set<Type> typeId;
+    @OneToMany(mappedBy = "Item", fetch = FetchType.LAZY)
+    private Set<type> types;
 
-    public Item(){
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    private messages Messages;
+
+    public item(){
 
     }
 
-    public int getItemId() {
-        return itemId;
-    }
-
-    public void setItemId(int itemId) {
-        this.itemId = itemId;
-    }
 
     public int getUserId() {
         return userId;
@@ -56,11 +56,11 @@ public class Item {
         this.description = description;
     }
 
-    public String getPicture() {
+    public int getPicture() {
         return picture;
     }
 
-    public void setPicture(String picture) {
+    public void setPicture(int picture) {
         this.picture = picture;
     }
 
@@ -80,11 +80,27 @@ public class Item {
         isSold = sold;
     }
 
-    public Set<Type> getTypeId() {
-        return typeId;
+    public int getId() {
+        return id;
     }
 
-    public void setTypeId(Set<Type> typeId) {
-        this.typeId = typeId;
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public Set<type> getTypes() {
+        return types;
+    }
+
+    public void setTypes(Set<type> types) {
+        this.types = types;
+    }
+
+    public messages getMessages() {
+        return Messages;
+    }
+
+    public void setMessages(messages Messages) {
+        this.Messages = Messages;
     }
 }
