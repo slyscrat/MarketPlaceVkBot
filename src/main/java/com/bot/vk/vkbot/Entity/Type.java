@@ -3,10 +3,7 @@ package com.bot.vk.vkbot.Entity;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "type")
@@ -17,9 +14,6 @@ public class Type {
 
     @Column
     private String name;
-
-    @Column
-    private String description;
 
     public Type(){
 
@@ -41,11 +35,4 @@ public class Type {
         this.name = name;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
 }

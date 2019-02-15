@@ -6,18 +6,18 @@ import javax.persistence.*;
 
 
 @Entity
-@Table(name = "MESSAGES")
+@Table(name = "messages")
 public class Messages {
 
     @Id
-    @Column(name = "DATE")
+    @Column
     private Date date;
 
     @Id
-    @Column(name = "USER_ID")
+    @Column
     private int userId;
 
-    @Column(name = "MESSAGE")
+    @Column
     private String message;
 
     @ManyToOne

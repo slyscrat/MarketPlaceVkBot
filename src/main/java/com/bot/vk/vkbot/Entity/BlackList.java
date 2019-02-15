@@ -6,14 +6,14 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "BLACK_LIST")
+@Table(name = "blackList")
 public class BlackList {
 
     @Id
-    @Column(name = "USER_ID")
+    @Column
     private int userId;
 
-    @Column(name = "WARNINGS")
+    @Column
     private int warnings;
 
     public BlackList(){

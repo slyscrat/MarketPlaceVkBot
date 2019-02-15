@@ -1,33 +1,32 @@
 package com.bot.vk.vkbot.Entity;
 
 import javax.persistence.*;
+import java.util.Set;
 
 @Entity
-@Table(name = "ITEM")
+@Table(name = "item")
 public class Item {
 
     @Id
-    @Column(name = "ITEM_ID")
     private int itemId;
 
-    @Column(name = "USER_ID")
+    @Column
     private int userId;
 
-    @Column(name = "DESCRIPTION")
+    @Column
     private String description;
 
-    @Column(name = "PICTURE")
+    @Column
     private String picture;
 
-    @Column(name = "PRICE")
+    @Column
     private float price;
 
-    @Column(name = "IS_SOLD")
+    @Column
     private Boolean isSold;
 
-    @ManyToOne
-    @JoinColumn(name = "TYPE_ID")
-    private int typeId;
+    @OneToMany(mappedBy = "type")
+    private Set<Type> typeId;
 
     public Item(){
 
@@ -81,11 +80,11 @@ public class Item {
         isSold = sold;
     }
 
-    public int getTypeId() {
+    public Set<Type> getTypeId() {
         return typeId;
     }
 
-    public void setTypeId(int typeId) {
+    public void setTypeId(Set<Type> typeId) {
         this.typeId = typeId;
     }
 }
