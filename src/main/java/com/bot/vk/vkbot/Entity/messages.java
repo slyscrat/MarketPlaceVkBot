@@ -11,6 +11,9 @@ import javax.persistence.*;
 public class messages implements Serializable {
 
     @Id
+    private int id;
+
+
     @Column
     private Date date;
 
@@ -20,7 +23,7 @@ public class messages implements Serializable {
     @Column
     private String message;
 
-    @OneToMany(mappedBy = "Messages", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "Messages")
     private Set<item> items;
 
     public messages(){
@@ -57,5 +60,13 @@ public class messages implements Serializable {
 
     public void setItems(Set<item> items) {
         this.items = items;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 }

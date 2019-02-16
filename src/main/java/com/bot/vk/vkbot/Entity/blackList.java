@@ -1,10 +1,8 @@
 package com.bot.vk.vkbot.Entity;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.io.Serializable;
+import java.util.Set;
 
 @Entity
 @Table(name = "blackList")
@@ -35,4 +33,5 @@ public class blackList implements Serializable{
     public void setUserId(int userId) {
         this.userId = userId;
     }
+
 }

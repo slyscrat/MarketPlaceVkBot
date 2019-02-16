@@ -14,9 +14,6 @@ public class item implements Serializable {
     private int id;
 
     @Column
-    private int userId;
-
-    @Column
     private String description;
 
     @Column
@@ -28,24 +25,14 @@ public class item implements Serializable {
     @Column
     private Boolean isSold;
 
-    @OneToMany(mappedBy = "Item", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "Item")
     private Set<type> types;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @ManyToOne
     private messages Messages;
 
     public item(){
 
-    }
-
-
-    public int getUserId() {
-        return userId;
-    }
-
-    public void setUserId(int userId) {
-        this.userId = userId;
     }
 
     public String getDescription() {
@@ -103,4 +90,5 @@ public class item implements Serializable {
     public void setMessages(messages Messages) {
         this.Messages = Messages;
     }
+
 }
