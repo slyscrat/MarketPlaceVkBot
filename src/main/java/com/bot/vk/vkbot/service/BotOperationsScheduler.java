@@ -14,16 +14,17 @@ import java.util.List;
 public class BotOperationsScheduler {
 
     private final VkClient client;
+    private int counter;
 
     @Autowired
-    //it is better not to use private field injection to avoid reflection operations -> replaced with constructor injection
     public BotOperationsScheduler(VkClient client) {
         this.client = client;
+        this.counter = 0;
     }
 
     @Scheduled(fixedDelayString = "${bot.operations_interval}")
     public void scheduleFixedDelayTask() {
-        log.info("It work!");
+        log.info("This bot is alive " + counter++ + " sec");
         List<Message> messages = client.readMessages();
         client.replyForMessages(messages);
     }
