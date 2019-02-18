@@ -9,5 +9,5 @@ public interface ItemService {
     Item getById(long id);
     List<Item> getAll();
     List<Item> getByType(long type);
-    List<Item> getByUser(long id);
+    List<Item> getByUserId(long userId);
 }

@@ -43,11 +43,11 @@ public class ItemServiceImpl implements ItemService{
 
     @Override
     public List<Item> getByType(long type){
-        return new ArrayList<>(itemRepository.findByTypeId(type));
+        return new ArrayList<>(itemRepository.findByType(type));
     }
 
     @Override
-    public List<Item> getByUser(long user){
-        return new ArrayList<>(itemRepository.findByUser(user));
+    public List<Item> getByUserId(long userId){
+        return new ArrayList<>(itemRepository.findByUserId(userId));
     }
 }
