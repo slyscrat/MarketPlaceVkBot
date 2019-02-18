@@ -1,7 +1,7 @@
-#Bot application:
-##About
+# Bot application:
+## About
 VK API Client for open area sales
-##Dev team:
+## Dev team:
     - Шадрин Владислав - irdash.v@gmail.com
     - Колищук Вадим	- legenda2121@mail.ru
     - Ершов Роман - roman.ershov.1998@mail.ru
