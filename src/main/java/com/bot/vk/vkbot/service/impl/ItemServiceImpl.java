@@ -40,4 +40,14 @@ public class ItemServiceImpl implements ItemService{
         itemRepository.findAll().forEach(list::add);
         return list;
     }
+
+    @Override
+    public List<Item> getByType(long type){
+        return new ArrayList<>(itemRepository.findByTypeId(type));
+    }
+
+    @Override
+    public List<Item> getByUser(long user){
+        return new ArrayList<>(itemRepository.findByUser(user));
+    }
 }

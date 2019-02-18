@@ -8,4 +8,6 @@ public interface ItemService {
     void delete(long id);
     Item getById(long id);
     List<Item> getAll();
+    List<Item> getByType(long type);
+    List<Item> getByUser(long id);
 }
