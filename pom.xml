@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.bot.vk</groupId>
 	<artifactId>vkbot</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.5.92</version>
 	<name>vkbot</name>
 	<description>Vk bot for Spring Boot</description>
 
@@ -65,8 +65,13 @@
 			<artifactId>h2</artifactId>
 			<version>1.4.197</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20180813</version>
+		</dependency>
 	</dependencies>
-
 
 	<build>
 		<plugins>
