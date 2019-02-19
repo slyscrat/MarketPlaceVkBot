@@ -4,4 +4,6 @@ import com.bot.vk.vkbot.Entity.BlackList;
 import org.springframework.data.repository.CrudRepository;
 
 public interface BlackListRepository extends CrudRepository<BlackList, Long>{
+    void deleteById(Long id);
+    BlackList getById(Long id);
 }
