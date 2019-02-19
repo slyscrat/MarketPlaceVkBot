@@ -25,13 +25,13 @@ public class ItemServiceImpl implements ItemService{
     }
 
     @Override
-    public void delete(long id){
+    public void delete(Long id){
         itemRepository.deleteById(id);
     }
 
     @Override
-    public Item getById(long id){
-        return new Item();
+    public Item getById(Long id){
+        return itemRepository.findById(id).orElse(null);
     }
 
     @Override
@@ -42,12 +42,12 @@ public class ItemServiceImpl implements ItemService{
     }
 
     @Override
-    public List<Item> getByType(long type){
+    public List<Item> getByType(Long type){
         return new ArrayList<>(itemRepository.findByType(type));
     }
 
     @Override
-    public List<Item> getByUserId(long userId){
+    public List<Item> getByUserId(Long userId){
         return new ArrayList<>(itemRepository.findByUserId(userId));
     }
 }

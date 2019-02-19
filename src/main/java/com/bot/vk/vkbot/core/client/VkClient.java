@@ -16,9 +16,9 @@ public interface VkClient {
 
     List<Integer> getMembers(); //+
 
-    void postProduct();
+    void postProduct(Long userId, String name, String description, Long type, Float price, Integer pictureId);
 
-    void deleteProduct();
+    void deleteProduct(Long Id);
 
     void banUser();
 

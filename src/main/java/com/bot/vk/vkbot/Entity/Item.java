@@ -20,7 +20,7 @@ public class Item{
     @Column(name = "id_picture")
     private Integer pictureId;
     private Float price;
-    private Boolean isSold;
+    private Boolean isSold = false;
     @Column(name = "id_type")
     private Long type;
 

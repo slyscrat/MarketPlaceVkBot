@@ -1,6 +1,7 @@
 package com.bot.vk.vkbot.core;
 
 import com.bot.vk.vkbot.core.client.VkClient;
+import com.bot.vk.vkbot.service.ItemService;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
@@ -9,8 +10,11 @@ import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.objects.messages.Dialog;
 import com.vk.api.sdk.objects.messages.Message;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.bot.vk.vkbot.Entity.Item;
 
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -24,11 +28,18 @@ public class VkClientImpl implements VkClient {
     private final VkApiClient apiClient = new VkApiClient(HttpTransportClient.getInstance());
     private GroupActor actor;
 
+    private final ItemService itemService;
+
     @Value("${bot.group.id}")
     private int groupID;
 
     @Value("${bot.group.client_secret}")
     private String token;
+
+    @Autowired
+    public VkClientImpl(ItemService itemService) {
+        this.itemService = itemService;
+    }
 
     @PostConstruct
     public void init() {
@@ -47,7 +58,7 @@ public class VkClientImpl implements VkClient {
 
     @Override
     public List<Message> readMessages() {
-        List<Message> result = new ArrayList<Message>();
+        List<Message> result = new ArrayList<>();
         try {
             List<Dialog> dialogs = apiClient.messages().getDialogs(actor).unanswered1(true).execute().getItems();
             for (Dialog item : dialogs) {
@@ -92,12 +103,23 @@ public class VkClientImpl implements VkClient {
     }
 
     @Override
-    public void postProduct() {
-        //post
+    public void postProduct(Long userId, String name, String description, Long type, Float price, Integer pictureId) {
+        try{
+            this.itemService.addItem(new Item(userId, name, description, pictureId, price, type));
+        }
+        catch(Exception ex){
+            log.error(ex);
+        }
     }
 
     @Override
-    public void deleteProduct() {
+    public void deleteProduct(Long id) {
+        try{
+            this.itemService.delete(id);
+        }
+        catch(Exception ex){
+            log.error(ex);
+        }
         //delete
         //apiClient.market().getById()
     }
