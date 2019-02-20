@@ -1,6 +1,6 @@
 package com.bot.vk.vkbot.service;
 
-import com.bot.vk.vkbot._exceptions.RudeWordException;
+import com.bot.vk.vkbot.exceptions.RudeWordException;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.BufferedReader;

@@ -1,6 +1,6 @@
 package com.bot.vk.vkbot.service;
 
-import com.bot.vk.vkbot._entity.Item;
+import com.bot.vk.vkbot.entity.Item;
 import com.bot.vk.vkbot.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.ObjectNotFoundException;

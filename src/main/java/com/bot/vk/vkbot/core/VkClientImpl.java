@@ -1,6 +1,6 @@
 package com.bot.vk.vkbot.core;
 
-import com.bot.vk.vkbot._entity.Item;
+import com.bot.vk.vkbot.entity.Item;
 import com.bot.vk.vkbot.core.client.VkClient;
 import com.bot.vk.vkbot.service.ItemService;
 import com.vk.api.sdk.client.VkApiClient;

@@ -1,4 +1,4 @@
-package com.bot.vk.vkbot._entity;
+package com.bot.vk.vkbot.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
