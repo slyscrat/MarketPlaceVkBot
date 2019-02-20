@@ -1,7 +1,11 @@
 package com.bot.vk.vkbot.core;
 
 import com.bot.vk.vkbot.core.client.VkClient;
+
+import com.bot.vk.vkbot.service.ItemService;
+
 import com.sun.xml.internal.ws.api.message.Attachment;
+
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -17,6 +21,9 @@ import com.vk.api.sdk.objects.photos.responses.MarketUploadResponse;
 import com.vk.api.sdk.queries.market.MarketAddQuery;
 import lombok.extern.java.Log;
 import lombok.extern.log4j.Log4j2;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
 import lombok.var;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
@@ -28,8 +35,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.bot.vk.vkbot.Entity.Item;
 
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
@@ -50,6 +60,8 @@ public class VkClientImpl implements VkClient {
     private GroupActor groupActor;
     private UserActor userActor;
 
+    private final ItemService itemService;
+
     @Value("${bot.group.id}")
     private int groupID;
 
@@ -61,6 +73,11 @@ public class VkClientImpl implements VkClient {
 
     @Value("${bot.user.client_secret}")
     private String userToken;
+
+    @Autowired
+    public VkClientImpl(ItemService itemService) {
+        this.itemService = itemService;
+    }
 
     @PostConstruct
     public void init() {
@@ -80,7 +97,7 @@ public class VkClientImpl implements VkClient {
 
     @Override
     public List<Message> readMessages() {
-        List<Message> result = new ArrayList<Message>();
+        List<Message> result = new ArrayList<>();
         try {
             List<Dialog> dialogs = apiClient.messages().getDialogs(groupActor).unanswered1(true).execute().getItems();
             for (Dialog item : dialogs) {
@@ -127,20 +144,27 @@ public class VkClientImpl implements VkClient {
     }
 
     @Override
-    public void postProduct(String name, String description, int categoryId, double price, Photo photo) {
+    public void postProduct(Long userId, String name, String description, Long type, Float price, Photo photo) {
         try {
             int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
+            this.itemService.addItem(new Item(userId, name, description, photoId, price, type));
             apiClient.market().add(userActor, -1*groupID, name, description, categoryId, price, photoId).execute();
         } catch (IOException | ClientException | ApiException e) {
             log.error(e);
         }
     }
 
-    @Override
-    public void deleteProduct(int id) {
-        //delete
 
-        //MarketAddQuery a = new MarketAddQuery(apiClient, actor, 133773509);
+    @Override
+    public void deleteProduct(Long id) {
+        try{
+            this.itemService.delete(id);
+            //MarketAddQuery a = new MarketAddQuery(apiClient, actor, 133773509);
+        }
+        catch(Exception ex){
+            log.error(ex);
+        }
+      
     }
 
     @Override

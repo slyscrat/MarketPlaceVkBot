@@ -26,6 +26,10 @@ public interface VkClient {
 
         void deleteProduct(int id);
 
+        void postProduct(Long userId, String name, String description, Long type, Float price, Photo photo);
+
+        void deleteProduct(Long Id);
+        
         void banUser(int id);
 
         void unBanUser(int id);

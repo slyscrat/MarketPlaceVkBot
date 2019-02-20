@@ -20,16 +20,19 @@ public class Item{
     @Column(name = "id_picture")
     private Integer pictureId;
     private Float price;
-    private Boolean isSold;
+    private Boolean isSold = false;
+    @Column(name = "id_type")
+    private Long type;
 
     public Item(){}
 
-    public Item(Long userId, String name, String description, Integer pictureId, Float price) {
+    public Item(Long userId, String name, String description, Integer pictureId, Float price, Long type) {
         this.userId = userId;
         this.name = name;
         this.description = description;
         this.pictureId = pictureId;
         this.price = price;
+        this.type = type;
     }
 
 }
