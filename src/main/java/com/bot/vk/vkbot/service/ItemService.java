@@ -1,46 +1,46 @@
 package com.bot.vk.vkbot.service;
 
-import com.bot.vk.vkbot.Entity.Item;
+import com.bot.vk.vkbot._entity.Item;
 import com.bot.vk.vkbot.repository.ItemRepository;
+import lombok.RequiredArgsConstructor;
+import org.hibernate.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ItemService {
-    private ItemRepository itemRepository;
 
-    @Autowired
-    public ItemService(ItemRepository itemRepository) {
-        this.itemRepository = itemRepository;
-    }
-
+    private final ItemRepository itemRepository;
 
     public void create(Item item) {
-        this.itemRepository.save(item);
+        itemRepository.save(item);
     }
-
 
     public void deleteById(Long id) {
-        this.itemRepository.deleteById(id);
+        itemRepository.deleteById(id);
     }
-
 
     public void clear() {
-        this.itemRepository.deleteAll();
+        itemRepository.deleteAll();
     }
 
-
     public Item getById(Long id) {
-        return this.itemRepository.getById(id);
+        return itemRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException(id, "itemId"));
+    }
+
+    public List<Item> getByUserId(Long userId) {
+        return itemRepository.findByUserId(userId);
+    }
+
+    public List<Item> getByType(Long type) {
+        return itemRepository.findByType(type);
     }
 
 
     public List<Item> getAll() {
-        List<Item> list = new ArrayList<>();
-        this.itemRepository.findAll().forEach(list::add);
-        return list;
+        return itemRepository.findAll();
     }
 }

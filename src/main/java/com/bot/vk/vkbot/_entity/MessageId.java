@@ -1,8 +1,8 @@
-package com.bot.vk.vkbot.Entity;
+package com.bot.vk.vkbot._entity;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
@@ -11,21 +11,14 @@ import javax.persistence.TemporalType;
 import java.io.Serializable;
 import java.util.Date;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Embeddable
-@EqualsAndHashCode
 public class MessageId implements Serializable{
     @Column(name = "id_user")
     private Long userId;
 
     @Column(name = "date") @Temporal(TemporalType.TIMESTAMP)
     private Date date;
-
-    public MessageId(){}
-
-    public MessageId(Long userId,Date date){
-        this.userId = userId;
-        this.date = date;
-    }
 }

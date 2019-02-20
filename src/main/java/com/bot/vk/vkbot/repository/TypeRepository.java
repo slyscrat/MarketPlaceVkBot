@@ -1,9 +1,7 @@
 package com.bot.vk.vkbot.repository;
 
-import com.bot.vk.vkbot.Entity.Type;
-import org.springframework.data.repository.CrudRepository;
+import com.bot.vk.vkbot._entity.Type;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TypeRepository extends CrudRepository<Type, Long> {
-    Type getById(Long id);
-    void deleteById(Long id);
+public interface TypeRepository extends JpaRepository<Type, Long> {
 }

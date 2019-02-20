@@ -1,4 +1,4 @@
-package com.bot.vk.vkbot.service;
+package com.bot.vk.vkbot.core;
 
 import com.bot.vk.vkbot.core.client.VkClient;
 import com.vk.api.sdk.objects.messages.Message;
@@ -13,19 +13,19 @@ import java.util.List;
 @Log4j2
 public class BotOperationsScheduler {
 
-    private final VkClient client;
+    private final VkClient vkClient;
     private int counter;
 
     @Autowired
-    public BotOperationsScheduler(VkClient client) {
-        this.client = client;
+    public BotOperationsScheduler(VkClient vkClient) {
+        this.vkClient = vkClient;
         this.counter = 0;
     }
 
     @Scheduled(fixedDelayString = "${bot.operations_interval}")
     public void scheduleFixedDelayTask() {
         log.info("This bot is alive " + counter++ + " sec");
-        List<Message> messages = client.readMessages();
-        client.replyForMessages(messages);
+        List<Message> messages = vkClient.readMessages();
+        vkClient.replyForMessages(messages);
     }
 }

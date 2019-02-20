@@ -1,47 +1,37 @@
 package com.bot.vk.vkbot.service;
 
-import com.bot.vk.vkbot.Entity.BlackList;
+import com.bot.vk.vkbot._entity.BlackList;
 import com.bot.vk.vkbot.repository.BlackListRepository;
+import lombok.RequiredArgsConstructor;
+import org.hibernate.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class BlackListService {
-    private BlackListRepository blackListRepository;
 
-    @Autowired
-    public BlackListService(BlackListRepository blackListRepository) {
-        this.blackListRepository = blackListRepository;
-    }
-
+    private final BlackListRepository blackListRepository;
 
     public void create(BlackList blackList) {
-        this.blackListRepository.save(blackList);
+        blackListRepository.save(blackList);
     }
-
 
     public void deleteById(Long id) {
-        this.blackListRepository.deleteById(id);
+        blackListRepository.deleteById(id);
     }
-
 
     public BlackList getById(Long id) {
-        return this.blackListRepository.getById(id);
+        return blackListRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException(id, "blacl list id"));
     }
-
 
     public List<BlackList> getAll() {
-        List<BlackList> list = new ArrayList<>();
-        this.blackListRepository.findAll().forEach(list::add);
-        return list;
+        return blackListRepository.findAll();
     }
-
 
     public void clear() {
-        this.blackListRepository.deleteAll();
+        blackListRepository.deleteAll();
     }
-
 }

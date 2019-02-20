@@ -1,48 +1,37 @@
 package com.bot.vk.vkbot.service;
 
-import com.bot.vk.vkbot.Entity.MessageId;
-import com.bot.vk.vkbot.Entity.Messages;
+import com.bot.vk.vkbot._entity.MessageId;
+import com.bot.vk.vkbot._entity.Message;
 import com.bot.vk.vkbot.repository.MessagesRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class MessagesService {
-    private MessagesRepository messagesRepository;
 
-    @Autowired
-    public MessagesService(MessagesRepository messagesRepository){
-        this.messagesRepository = messagesRepository;
+    private final MessagesRepository messagesRepository;
+
+    public void create(Message message) {
+        messagesRepository.save(message);
     }
-
-
-
-    public void create(Messages messages) {
-        this.messagesRepository.save(messages);
-    }
-
 
     public void delete(MessageId messageId) {
-        this.messagesRepository.deleteByMessageId(messageId);
+        messagesRepository.deleteByMessageId(messageId);
     }
-
 
     public void clear() {
-        this.messagesRepository.deleteAll();
+        messagesRepository.deleteAll();
     }
 
-
-    public Messages getMessageById(MessageId messageId) {
-        return this.messagesRepository.getByMessageId(messageId);
+    public Message getMessageById(MessageId messageId) {
+        return messagesRepository.getByMessageId(messageId);
     }
 
-
-    public List<Messages> getAll() {
-        List<Messages> list = new ArrayList<>();
-        this.messagesRepository.findAll().forEach(list::add);
-        return list;
+    public List<Message> getAll() {
+        return messagesRepository.findAll();
     }
 }

@@ -1,14 +1,13 @@
-package com.bot.vk.vkbot.Entity;
+package com.bot.vk.vkbot._entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 
-@Getter
-@Setter
 @Entity
 @Table(name = "Item")
+@Data
+@NoArgsConstructor
 public class Item{
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,8 +22,6 @@ public class Item{
     private Boolean isSold = false;
     @Column(name = "id_type")
     private Long type;
-
-    public Item(){}
 
     public Item(Long userId, String name, String description, Integer pictureId, Float price, Long type) {
         this.userId = userId;
