@@ -114,6 +114,7 @@ public class VkClientImpl implements VkClient {
                 postProduct(params[1], params[2], Integer.parseInt(params[3]), Double.parseDouble(params[4]), list.get(0).getPhoto());
                 sendMessage("You add ", item.getUserId());
             } else if (body.contains("/find")) {
+                // itemService.getByString(line);
                 //https://vk.com/club177931732?w=product-177931732_3049472%2Fquery
                 String[] params = body.split(" ");
                 sendMessage("You find: \n https://vk.com/club177931732?w=product-177931732_" + Integer.parseInt(params[1]) + "%2Fquery", item.getUserId());
@@ -130,8 +131,8 @@ public class VkClientImpl implements VkClient {
     public void postProduct(Long userId, String name, String description, int categoryId, Long type, Float price, Photo photo) {
         try {
             int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
-            this.itemService.create(new Item(userId, name, description, photoId, price, type));
-            apiClient.market().add(userActor, -1 * groupID, name, description, categoryId, price, photoId).execute();
+            long productId = apiClient.market().add(userActor, -1 * groupID, name, description, categoryId, price, photoId).execute().getMarketItemId();
+            this.itemService.create(new Item(productId, userId, name, description, photoId, price, type));
         } catch (IOException | ClientException | ApiException e) {
             log.error(e);
         }
