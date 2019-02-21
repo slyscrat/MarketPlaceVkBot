@@ -1,8 +1,11 @@
 package com.bot.vk.vkbot.core;
 
-import com.bot.vk.vkbot.entity.Item;
 import com.bot.vk.vkbot.core.client.VkClient;
+import com.bot.vk.vkbot.entity.Item;
+import com.bot.vk.vkbot.exceptions.RudeWordException;
+import com.bot.vk.vkbot.service.BanService;
 import com.bot.vk.vkbot.service.ItemService;
+import com.bot.vk.vkbot.service.RudeWordsFilter;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -13,6 +16,7 @@ import com.vk.api.sdk.objects.messages.Dialog;
 import com.vk.api.sdk.objects.messages.Message;
 import com.vk.api.sdk.objects.messages.MessageAttachment;
 import com.vk.api.sdk.objects.photos.Photo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
@@ -39,7 +43,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static com.bot.vk.vkbot.service.BanService.MAX_ALLOWED_WARNINGS;
+
 @Component
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Log4j2
 public class VkClientImpl implements VkClient {
 
@@ -48,6 +55,8 @@ public class VkClientImpl implements VkClient {
     private UserActor userActor;
 
     private final ItemService itemService;
+    private final BanService banService;
+    private final RudeWordsFilter rudeWordsFilter;
 
     @Value("${bot.group.id}")
     private int groupID;
@@ -60,11 +69,6 @@ public class VkClientImpl implements VkClient {
 
     @Value("${bot.user.client_secret}")
     private String userToken;
-
-    @Autowired
-    public VkClientImpl(ItemService itemService) {
-        this.itemService = itemService;
-    }
 
     @PostConstruct
     public void init() {
@@ -102,6 +106,25 @@ public class VkClientImpl implements VkClient {
         List<MessageAttachment> list;
         for (Message item : messages) {
             body = item.getBody();
+
+            //rude words
+            try {
+                rudeWordsFilter.assertSentenceIsPolite(body);
+            } catch (RudeWordException e) {
+                log.error("User {} is not a polite guy", item.getUserId());
+                Integer warningsCount = banService.addWarning(item.getUserId().longValue());
+                if (banService.isUserBanned(item.getUserId().longValue())) {
+                    sendMessage("Ты забанен. Использовал в сообщениях матные слова " + warningsCount + " раз", item.getUserId());
+                    continue;
+                }
+                sendMessage("Ты скоро будешь забанен. Допустимо предупреждений - " + MAX_ALLOWED_WARNINGS + ". Это уже предупреждение #" + warningsCount, item.getUserId());
+                continue;
+            }
+            if (banService.isUserBanned(item.getUserId().longValue())) {
+                sendMessage("Ты забанен. Использовал в сообщениях матные слова " + banService.getWaqrningsCount(item.getUserId().longValue()) + " раз", item.getUserId());
+                continue;
+            }
+
             list = item.getAttachments();
             //to do проверка на вложения
             if (body.equals("Начать")) {

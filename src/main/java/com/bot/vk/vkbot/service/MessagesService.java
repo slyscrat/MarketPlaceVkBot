@@ -1,7 +1,7 @@
 package com.bot.vk.vkbot.service;
 
-import com.bot.vk.vkbot.entity.MessageId;
 import com.bot.vk.vkbot.entity.Message;
+import com.bot.vk.vkbot.entity.MessageId;
 import com.bot.vk.vkbot.repository.MessagesRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;

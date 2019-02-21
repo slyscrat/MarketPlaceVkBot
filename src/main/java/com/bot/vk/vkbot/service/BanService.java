@@ -1,42 +1,32 @@
 package com.bot.vk.vkbot.service;
 
-import com.bot.vk.vkbot.Entity.BlackList;
-import com.bot.vk.vkbot.Exceptions.BanException;
+import com.bot.vk.vkbot.entity.BlackList;
 import com.bot.vk.vkbot.repository.BlackListRepository;
-import com.fasterxml.jackson.databind.ser.std.NumberSerializers;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.annotation.Id;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.Column;
-
 @Service
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class BanService {
 
-    int MAX_ALOWE;
+    public static final int MAX_ALLOWED_WARNINGS = 3;
 
-    public BanService(int MAX_ALOWE){
-        this.MAX_ALOWE = MAX_ALOWE;
+    private final BlackListRepository blackListRepository;
+
+    public Integer addWarning(Long userId) {
+        BlackList bl = blackListRepository.findById(userId)                         //find by user id
+                .orElseGet(() -> blackListRepository.save(new BlackList(userId)));  //or else create new one
+        bl.setWarnings(bl.getWarnings() + 1);                                       //increment warnings
+        blackListRepository.save(bl);
+        return bl.getWarnings();
     }
 
-
-    @Autowired BlackListRepository blackListRepository;
-
-    public void addWarning(Long userId) throws BanException{
-
-        @Id @Column(name = "id_user")
-        private Long id;
-        private Integer warnings;
-
-        BlackList bl = blackListRepository.findById(userId);
-        bl.setWarnings(bl.getWarnings + 1);
-        bl.blackListRepository.save(bl);
-
-        if(bl.getWarnings() > MAX_ALOWE){
-            throw new BanException();
-        }
+    public boolean isUserBanned(Long userId) {
+        return getWaqrningsCount(userId) > MAX_ALLOWED_WARNINGS;
     }
 
-
-
+    public Integer getWaqrningsCount(Long userId) {
+        return blackListRepository.findById(userId).orElseGet(() -> blackListRepository.save(new BlackList(userId))).getWarnings();
+    }
 }
