@@ -1,6 +1,9 @@
+package com.bot.vk.vkbot.service;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import com.bot.vk.vkbot.Exceptions.RudeWordException;
 
 public class Filter {
     String[] rudeWords = null;

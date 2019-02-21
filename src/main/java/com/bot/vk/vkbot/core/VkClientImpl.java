@@ -1,7 +1,7 @@
 package com.bot.vk.vkbot.core;
 
 import com.bot.vk.vkbot.core.client.VkClient;
-import com.sun.xml.internal.ws.api.message.Attachment;
+import com.vk.api.sdk.client.AbstractQueryBuilder;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -12,24 +12,22 @@ import com.vk.api.sdk.objects.messages.Dialog;
 import com.vk.api.sdk.objects.messages.Message;
 import com.vk.api.sdk.objects.messages.MessageAttachment;
 import com.vk.api.sdk.objects.photos.Photo;
-import com.vk.api.sdk.objects.photos.responses.GetMarketUploadServerResponse;
-import com.vk.api.sdk.objects.photos.responses.MarketUploadResponse;
-import com.vk.api.sdk.queries.market.MarketAddQuery;
-import lombok.extern.java.Log;
+import com.vk.api.sdk.queries.messages.MessagesSendQuery;
 import lombok.extern.log4j.Log4j2;
-import lombok.var;
 import org.apache.commons.io.FileUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.bot.vk.vkbot.Entity.Item;
+import com.bot.vk.vkbot.service.ItemService;
 
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
@@ -49,6 +47,7 @@ public class VkClientImpl implements VkClient {
     private final VkApiClient apiClient = new VkApiClient(HttpTransportClient.getInstance());
     private GroupActor groupActor;
     private UserActor userActor;
+    private final ItemService itemService;
 
     @Value("${bot.group.id}")
     private int groupID;
@@ -62,10 +61,29 @@ public class VkClientImpl implements VkClient {
     @Value("${bot.user.client_secret}")
     private String userToken;
 
+    @Autowired
+    public VkClientImpl(ItemService itemService) {
+        this.itemService = itemService;
+    }
+
     @PostConstruct
     public void init() {
         this.groupActor = new GroupActor(groupID, groupToken);
         this.userActor = new UserActor(userID, userToken);
+    }
+
+    private void sendBatchMessages(String message, int userId) {
+        Random random = new Random();
+        try {
+            List<AbstractQueryBuilder> list = new ArrayList<>();
+            for (int i = 0; i < 25; i++)
+            {
+                list.add(apiClient.messages().send(groupActor).message("message " + (i+1)).attachment("photo-" + groupID + "_" + 456239026).userId(userId).randomId(random.nextInt()));
+            }
+            apiClient.execute().batch(groupActor, list).execute();
+        } catch (ApiException | ClientException e) {
+            log.error(e);
+        }
     }
 
     @Override
@@ -103,19 +121,28 @@ public class VkClientImpl implements VkClient {
             if (body.equals("Начать")){
                 sendMessage("Hello", item.getUserId());
             }
+            else if (body.contains("/batch"))
+            {
+                sendBatchMessages("", item.getUserId());
+            }
             else if (body.contains("/add"))
             {
                 //   /add name description categoryId price
                 //обработка + работа со строками
                 String[] params = body.split(" ");
 
-                postProduct(params[1], params[2], Integer.parseInt(params[3]), Double.parseDouble(params[4]) , list.get(0).getPhoto());
+                postProduct(item.getUserId().longValue(), params[1], params[2], Long.parseLong(params[3]), Float.parseFloat(params[4]) , list.get(0).getPhoto());
                 sendMessage("You add ", item.getUserId());
             }
             else if (body.contains("/find")){
                 //https://vk.com/club177931732?w=product-177931732_3049472%2Fquery
                 String[] params = body.split(" ");
                 sendMessage("You find: \n https://vk.com/club177931732?w=product-177931732_" + Integer.parseInt(params[1]) + "%2Fquery", item.getUserId());
+            }
+            else if (body.contains("/delete")){
+                String[] params = body.split(" ");
+                deleteProduct(Long.parseLong(params[1]));
+                sendMessage("You delete: " + Integer.parseInt(params[1]), item.getUserId());
             }
             else sendMessage("Don't understand you, try again", item.getUserId());
         }
@@ -126,7 +153,7 @@ public class VkClientImpl implements VkClient {
         return null;
     }
 
-    @Override
+    /*@Override
     public void postProduct(String name, String description, int categoryId, double price, Photo photo) {
         try {
             int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
@@ -134,13 +161,27 @@ public class VkClientImpl implements VkClient {
         } catch (IOException | ClientException | ApiException e) {
             log.error(e);
         }
+    }*/
+
+    @Override
+    public void postProduct(Long userId, String name, String description, Long type, Float price, Photo photo) {
+        try {
+            int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
+            int productID = apiClient.market().add(userActor, -1*groupID, name, description, type.intValue(), price, photoId).execute().getMarketItemId();
+            this.itemService.addItem(new Item(userId, name, description, photoId, price, type));
+        } catch (IOException | ClientException | ApiException e) {
+            log.error(e);
+        }
     }
 
     @Override
-    public void deleteProduct(int id) {
-        //delete
-
-        //MarketAddQuery a = new MarketAddQuery(apiClient, actor, 133773509);
+    public void deleteProduct(Long id) {
+        try {
+            this.itemService.delete(id);
+            apiClient.market().delete(userActor, -1*groupID, id.intValue()).execute();
+        } catch (ApiException | ClientException e) {
+            log.error(e);
+        }
     }
 
     @Override

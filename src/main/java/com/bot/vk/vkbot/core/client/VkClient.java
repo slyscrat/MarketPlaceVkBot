@@ -22,9 +22,9 @@ public interface VkClient {
         //not effective
         void sendMessage(String message, int id); //реализовано
 
-        void postProduct(String name, String description, int categoryId, double price, Photo photo);//реализовано
+        void postProduct(Long userId, String name, String description, Long type, Float price, Photo photo);//реализовано
 
-        void deleteProduct(int id);
+        void deleteProduct(Long id);
 
         void banUser(int id);
 
