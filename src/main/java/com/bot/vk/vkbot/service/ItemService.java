@@ -39,8 +39,11 @@ public class ItemService {
         return itemRepository.findByType(type);
     }
 
-
     public List<Item> getAll() {
         return itemRepository.findAll();
+    }
+
+    public List<Item> getByString(String line) {
+        return itemRepository.findByString(line);
     }
 }

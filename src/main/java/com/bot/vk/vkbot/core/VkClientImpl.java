@@ -1,9 +1,7 @@
 package com.bot.vk.vkbot.core;
 
-import com.bot.vk.vkbot.entity.Item;
 import com.bot.vk.vkbot.core.client.VkClient;
 import com.vk.api.sdk.client.AbstractQueryBuilder;
-import com.bot.vk.vkbot.service.ItemService;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -14,7 +12,6 @@ import com.vk.api.sdk.objects.messages.Dialog;
 import com.vk.api.sdk.objects.messages.Message;
 import com.vk.api.sdk.objects.messages.MessageAttachment;
 import com.vk.api.sdk.objects.photos.Photo;
-import com.vk.api.sdk.queries.messages.MessagesSendQuery;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
@@ -28,21 +25,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.bot.vk.vkbot.Entity.Item;
+import com.bot.vk.vkbot.entity.Item;
 import com.bot.vk.vkbot.service.ItemService;
 
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 @Log4j2
@@ -52,8 +46,7 @@ public class VkClientImpl implements VkClient {
     private GroupActor groupActor;
     private UserActor userActor;
     private final ItemService itemService;
-
-    private final ItemService itemService;
+    private Properties marketProps = new Properties();
 
     @Value("${bot.group.id}")
     private int groupID;
@@ -73,11 +66,16 @@ public class VkClientImpl implements VkClient {
     }
 
     @PostConstruct
-    public void init() {
+    public void init() throws IOException {
         this.groupActor = new GroupActor(groupID, groupToken);
         this.userActor = new UserActor(userID, userToken);
+        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream("chat.properties");
+        Reader reader = new InputStreamReader(stream, "UTF-8");
+        marketProps.load(reader);
+        stream.close();
     }
 
+    //remove after usage
     private void sendBatchMessages(String message, int userId) {
         Random random = new Random();
         try {
@@ -92,6 +90,7 @@ public class VkClientImpl implements VkClient {
         }
     }
 
+    //rewrite
     @Override
     public void sendMessage(String message, int userId) {
         Random random = new Random();
@@ -102,9 +101,18 @@ public class VkClientImpl implements VkClient {
         }
     }
 
+    public void sendMessage(String message, List<String> attachment, int userId) {
+        Random random = new Random();
+        try {
+            this.apiClient.messages().send(groupActor).message(message).attachment(attachment).userId(userId).randomId(random.nextInt()).execute();
+        } catch (ApiException | ClientException e) {
+            log.error(e);
+        }
+    }
+
     @Override
     public List<Message> readMessages() {
-        List<Message> result = new ArrayList<>();
+        List<Message> result = new ArrayList<Message>();
         try {
             List<Dialog> dialogs = apiClient.messages().getDialogs(groupActor).unanswered1(true).execute().getItems();
             for (Dialog item : dialogs) {
@@ -116,79 +124,154 @@ public class VkClientImpl implements VkClient {
         return result;
     }
 
+    //add + refactor
     @Override
     public void replyForMessages(List<Message> messages) {
         String body;
         List<MessageAttachment> list;
-        for (Message item : messages) {
-            body = item.getBody();
-            list = item.getAttachments();
-            //to do проверка на вложения
-            if (body.equals("Начать")) {
-                sendMessage("Hello", item.getUserId());
+        for (Message message : messages) {
+            body = message.getBody();
+            list = message.getAttachments();
+            if (body.equals("Начать")){
+                sendMessage(marketProps.getProperty("chat.message.welcome"), message.getUserId());
             }
-            else if (body.contains("/batch"))
+            else if (body.contains("/info"))
             {
-                sendBatchMessages("", item.getUserId());
+                sendMessage(getMarketInfo(body), message.getUserId());
+            }
+            else if (body.contains("/edit"))
+            {
+                //edit
             }
             else if (body.contains("/add"))
             {
-                //   /add name description categoryId price
-                //обработка + работа со строками
-                String[] params = body.split(" ");
+                Pattern pattern = Pattern.compile("(/add)\\ \\\"([^\"]{4,100})\\\"\\ \\\"([^\"]{10,})\\\"\\ ([0-9]+)\\ ([0-9.]+)");
+                Matcher matcher = pattern.matcher(body);
+                matcher.find();
 
-                postProduct(item.getUserId().longValue(), params[1], params[2], Long.parseLong(params[3]), Float.parseFloat(params[4]) , list.get(0).getPhoto());
-                sendMessage("You add ", item.getUserId());
-            } else if (body.contains("/find")) {
-                //https://vk.com/club177931732?w=product-177931732_3049472%2Fquery
-                String[] params = body.split(" ");
-                sendMessage("You find: \n https://vk.com/club177931732?w=product-177931732_" + Integer.parseInt(params[1]) + "%2Fquery", item.getUserId());
+                int productId  = postProduct(message.getUserId().longValue(),
+                        matcher.group(2),
+                        matcher.group(3),
+                        Long.parseLong(matcher.group(4)),
+                        Float.parseFloat(matcher.group(5)),
+                        list.get(0).getPhoto());
+                sendMessage(marketProps.getProperty("chat.message.add.successmessage.id") +
+                        " " + productId + "\n"
+                        + marketProps.getProperty("chat.message.add.successmessage.warning"), message.getUserId());
+            }
+            else if (body.contains("/find")){
+                //regex
+                Pattern pattern = Pattern.compile("(\\/find)\\ \\\"([^\\\"]+)\\\"");
+                Matcher matcher = pattern.matcher(body);
+                matcher.find();
+                log.info(matcher.group(2).toLowerCase());
+                List<Item> items = itemService.getByString(matcher.group(2).toLowerCase());
+                List<String> attachments = new ArrayList<>();
+                String messageBody = "";
+                if (items.size() != 0) {
+                    //sendMessage("1) " + items.get(0).getName() + " (" + items.get(0).getPrice() + " рублей)\n", item.getUserId());
+                    for (int i = 0; i < items.size(); i++)
+                    {
+                        messageBody += (i+1) +  ") " + items.get(i).getName() + " (" + items.get(i).getPrice() + " рублей)\n";
+                        attachments.add("photo-" + groupID + "_" + items.get(i).getPictureId());
+                    }
+                    sendMessage(messageBody, attachments, message.getUserId());
+                }
+                else
+                {
+                    sendMessage("Ничего не найдено", message.getUserId());
+                }
             }
             else if (body.contains("/delete")){
                 String[] params = body.split(" ");
                 deleteProduct(Long.parseLong(params[1]));
-                sendMessage("You delete: " + Integer.parseInt(params[1]), item.getUserId());
+                sendMessage(marketProps.getProperty("chat.message.delete.successmessage"), message.getUserId());
             }
-            else sendMessage("Don't understand you, try again", item.getUserId());
+            else sendMessage(marketProps.getProperty("chat.message.error"), message.getUserId());
         }
     }
 
+    //write
     @Override
     public List<Message> sendMessagesRestrictor(List<Message> messages) {
         return null;
     }
 
+    //refactor
     @Override
-    public void postProduct(Long userId, String name, String description, Long type, Float price, Photo photo) {
+    public int postProduct(Long userId, String name, String description, Long type, Float price, Photo photo) {
         try {
             int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
             int productID = apiClient.market().add(userActor, -1*groupID, name, description, type.intValue(), price, photoId).execute().getMarketItemId();
-            this.itemService.addItem(new Item(userId, name, description, photoId, price, type));
+            this.itemService.create(new Item((long) productID, userId, name, description, photoId, price, type));
+            return productID;
         } catch (IOException | ClientException | ApiException e) {
             log.error(e);
+            return 0;
         }
     }
 
+    //refactor
     @Override
     public void deleteProduct(Long id) {
         try {
-            this.itemService.delete(id);
+            this.itemService.deleteById(id);
             apiClient.market().delete(userActor, -1*groupID, id.intValue()).execute();
         } catch (ApiException | ClientException e) {
             log.error(e);
         }
     }
 
+    //write
     @Override
     public void banUser(int id) {
         //ban
     }
 
+    //write
     @Override
     public void unBanUser(int id) {
         //unban
     }
 
+    @Override
+    public String getMarketInfo(String command) {
+        String property;
+        if (command.contains("add"))
+        {
+            property = "market.info.add";
+        }
+        else if (command.contains("delete"))
+        {
+            property = "market.info.delete";
+        }
+        else if (command.contains("edit"))
+        {
+            property = "market.info.edit";
+        }
+        else if (command.contains("category"))
+        {
+            property = "market.info.category";
+        }
+        else if (command.contains("find"))
+        {
+            property = "market.info.find";
+        }
+        else if (command.contains("reply"))
+        {
+            property = "market.info.reply";
+        }
+        else
+        {
+            property = "market.info";
+        }
+
+        String output = marketProps.getProperty(property);
+        log.info(output);
+        return output;
+    }
+
+    //remove
     @Override
     public void sendMessages(List<Message> messages) {
 
@@ -208,11 +291,13 @@ public class VkClientImpl implements VkClient {
 
     private URL getMaxSizedPhotoUrl(Photo photo) throws MalformedURLException, ClientException {
         URL url;
-        if (photo.getPhoto807() != null) {
+        if (photo.getPhoto807() != null){
             url = new URL(photo.getPhoto807());
-        } else if (photo.getPhoto604() != null) {
+        }
+        else if (photo.getPhoto604() != null) {
             url = new URL(photo.getPhoto604());
-        } else
+        }
+        else
             throw new ClientException("Low photo size");
         return url;
     }

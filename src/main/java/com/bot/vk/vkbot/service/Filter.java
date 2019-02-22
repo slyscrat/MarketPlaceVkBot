@@ -6,7 +6,7 @@ import lombok.extern.log4j.Log4j2;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import com.bot.vk.vkbot.Exceptions.RudeWordException;
+import com.bot.vk.vkbot.exceptions.RudeWordException;
 
 @Log4j2
 public class Filter {
