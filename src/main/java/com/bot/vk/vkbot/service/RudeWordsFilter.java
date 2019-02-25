@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import com.bot.vk.vkbot.exceptions.RudeWordException;
 
 @Log4j2
 @Component

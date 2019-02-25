@@ -19,12 +19,9 @@ public interface VkClient {
     //возвращает лист с сообщениями кроме первых 100
     // взял первые 100 -> отправил -> вернул оставшиеся
 
-    //not effective
-    void sendMessage(String message, int id); //реализовано
+    public void sendMessage(String message, int userId);
 
-    void postProduct(Long userId, String name, String description, int categoryId, Long type, Float price, Photo photo);
-
-    void postProduct(String name, String description, int categoryId, double price, Photo photo);
+	int postProduct(Long userId, String name, String description, Long type, Float price, Photo photo);//реализовано
 
     void deleteProduct(Long Id);
 
@@ -32,6 +29,7 @@ public interface VkClient {
 
     void unBanUser(int id);
 
+    String getMarketInfo(String command);
     //private
     //effective
     void sendMessages(List<Message> messages); //вызывается в sendMessagesRestrictor

@@ -1,10 +1,9 @@
 package com.bot.vk.vkbot.core;
 
 import com.bot.vk.vkbot.core.client.VkClient;
-import com.bot.vk.vkbot.entity.Item;
+import com.vk.api.sdk.client.AbstractQueryBuilder;
 import com.bot.vk.vkbot.exceptions.RudeWordException;
 import com.bot.vk.vkbot.service.BanService;
-import com.bot.vk.vkbot.service.ItemService;
 import com.bot.vk.vkbot.service.RudeWordsFilter;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
@@ -30,32 +29,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.bot.vk.vkbot.entity.Item;
+import com.bot.vk.vkbot.service.ItemService;
+
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-
-import static com.bot.vk.vkbot.service.BanService.MAX_ALLOWED_WARNINGS;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Log4j2
 public class VkClientImpl implements VkClient {
 
     private final VkApiClient apiClient = new VkApiClient(HttpTransportClient.getInstance());
     private GroupActor groupActor;
     private UserActor userActor;
-
     private final ItemService itemService;
-    private final BanService banService;
+    private Properties marketProps = new Properties();
+	private final BanService banService;
     private final RudeWordsFilter rudeWordsFilter;
 
     @Value("${bot.group.id}")
@@ -70,12 +66,39 @@ public class VkClientImpl implements VkClient {
     @Value("${bot.user.client_secret}")
     private String userToken;
 
-    @PostConstruct
-    public void init() {
-        this.groupActor = new GroupActor(groupID, groupToken);
-        this.userActor = new UserActor(userID, userToken);
+    @Autowired
+    public VkClientImpl(BanService banService, RudeWordsFilter rudeWordsFilter, ItemService itemService) {
+        this.banService = banService;
+        this.rudeWordsFilter = rudeWordsFilter;
+        this.itemService = itemService;
     }
 
+    @PostConstruct
+    public void init() throws IOException {
+        this.groupActor = new GroupActor(groupID, groupToken);
+        this.userActor = new UserActor(userID, userToken);
+        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream("chat.properties");
+        Reader reader = new InputStreamReader(stream, "UTF-8");
+        marketProps.load(reader);
+        stream.close();
+    }
+
+    //remove after usage
+    private void sendBatchMessages(String message, int userId) {
+        Random random = new Random();
+        try {
+            List<AbstractQueryBuilder> list = new ArrayList<>();
+            for (int i = 0; i < 25; i++)
+            {
+                list.add(apiClient.messages().send(groupActor).message("message " + (i+1)).attachment("photo-" + groupID + "_" + 456239026).userId(userId).randomId(random.nextInt()));
+            }
+            apiClient.execute().batch(groupActor, list).execute();
+        } catch (ApiException | ClientException e) {
+            log.error(e);
+        }
+    }
+
+    //rewrite
     @Override
     public void sendMessage(String message, int userId) {
         Random random = new Random();
@@ -86,9 +109,18 @@ public class VkClientImpl implements VkClient {
         }
     }
 
+    public void sendMessage(String message, List<String> attachment, int userId) {
+        Random random = new Random();
+        try {
+            this.apiClient.messages().send(groupActor).message(message).attachment(attachment).userId(userId).randomId(random.nextInt()).execute();
+        } catch (ApiException | ClientException e) {
+            log.error(e);
+        }
+    }
+
     @Override
     public List<Message> readMessages() {
-        List<Message> result = new ArrayList<>();
+        List<Message> result = new ArrayList<Message>();
         try {
             List<Dialog> dialogs = apiClient.messages().getDialogs(groupActor).unanswered1(true).execute().getItems();
             for (Dialog item : dialogs) {
@@ -100,99 +132,174 @@ public class VkClientImpl implements VkClient {
         return result;
     }
 
+    //add + refactor
     @Override
     public void replyForMessages(List<Message> messages) {
         String body;
         List<MessageAttachment> list;
-        for (Message item : messages) {
-            body = item.getBody();
+        for (Message message : messages) {
+            body = message.getBody();
 
-            //rude words
+			//rude words
             try {
                 rudeWordsFilter.assertSentenceIsPolite(body);
             } catch (RudeWordException e) {
-                log.error("User {} is not a polite guy", item.getUserId());
-                Integer warningsCount = banService.addWarning(item.getUserId().longValue());
-                if (banService.isUserBanned(item.getUserId().longValue())) {
-                    sendMessage("Ты забанен. Использовал в сообщениях матные слова " + warningsCount + " раз", item.getUserId());
+                log.info("User {} is not a polite guy", message.getUserId());
+                Integer warningsCount = banService.addWarning(message.getUserId().longValue());
+                if (banService.isUserBanned(message.getUserId().longValue())) {
+                    sendMessage("бан", message.getUserId());
+                    try {
+                        apiClient.groups().banUser(userActor, groupID, message.getUserId()).comment("Вы были забанены за использование мата").execute();
+                    } catch (ApiException | ClientException e1) {
+                        e1.printStackTrace();
+                    }
                     continue;
                 }
-                sendMessage("Ты скоро будешь забанен. Допустимо предупреждений - " + MAX_ALLOWED_WARNINGS + ". Это уже предупреждение #" + warningsCount, item.getUserId());
-                continue;
-            }
-            if (banService.isUserBanned(item.getUserId().longValue())) {
-                sendMessage("Ты забанен. Использовал в сообщениях матные слова " + banService.getWaqrningsCount(item.getUserId().longValue()) + " раз", item.getUserId());
+                sendMessage(marketProps.getProperty("chat.message.ban.warning") + (Integer.parseInt(marketProps.getProperty("chat.message.ban.maxcount")) - warningsCount), message.getUserId());
                 continue;
             }
 
-            list = item.getAttachments();
-            //to do проверка на вложения
-            if (body.equals("Начать")) {
-                sendMessage("Hello", item.getUserId());
-            } else if (body.contains("/add")) {
-                //   /add name description categoryId price
-                //обработка + работа со строками
-                String[] params = body.split(" ");
+            list = message.getAttachments();
+            if (body.equals("Начать")){
+                sendMessage(marketProps.getProperty("chat.message.welcome"), message.getUserId());
+            }
+            else if (body.contains("/info"))
+            {
+                sendMessage(getMarketInfo(body), message.getUserId());
+            }
+            else if (body.contains("/edit"))
+            {
+                //edit
+            }
+            else if (body.contains("/add"))
+            {
+                Pattern pattern = Pattern.compile("(/add)\\ \\\"([^\"]{4,100})\\\"\\ \\\"([^\"]{10,})\\\"\\ ([0-9]+)\\ ([0-9.]+)");
+                Matcher matcher = pattern.matcher(body);
+                matcher.find();
 
-                postProduct(params[1], params[2], Integer.parseInt(params[3]), Double.parseDouble(params[4]), list.get(0).getPhoto());
-                sendMessage("You add ", item.getUserId());
-            } else if (body.contains("/find")) {
-                // itemService.getByString(line);
-                //https://vk.com/club177931732?w=product-177931732_3049472%2Fquery
+                int productId  = postProduct(message.getUserId().longValue(),
+                        matcher.group(2),
+                        matcher.group(3),
+                        Long.parseLong(matcher.group(4)),
+                        Float.parseFloat(matcher.group(5)),
+                        list.get(0).getPhoto());
+                sendMessage(marketProps.getProperty("chat.message.add.successmessage.id") +
+                        " " + productId + "\n"
+                        + marketProps.getProperty("chat.message.add.successmessage.warning"), message.getUserId());
+            }
+            else if (body.contains("/find")){
+                //regex
+                Pattern pattern = Pattern.compile("(\\/find)\\ \\\"([^\\\"]+)\\\"");
+                Matcher matcher = pattern.matcher(body);
+                matcher.find();
+                log.info(matcher.group(2).toLowerCase());
+                List<Item> items = itemService.getByString(matcher.group(2).toLowerCase());
+                List<String> attachments = new ArrayList<>();
+                String messageBody = "";
+                if (items.size() != 0) {
+                    //sendMessage("1) " + items.get(0).getName() + " (" + items.get(0).getPrice() + " рублей)\n", item.getUserId());
+                    for (int i = 0; i < items.size(); i++)
+                    {
+                        messageBody += (i+1) +  ") " + items.get(i).getName() + " (" + items.get(i).getPrice() + " рублей)\n";
+                        attachments.add("photo-" + groupID + "_" + items.get(i).getPictureId());
+                    }
+                    sendMessage(messageBody, attachments, message.getUserId());
+                }
+                else
+                {
+                    sendMessage("Ничего не найдено", message.getUserId());
+                }
+            }
+            else if (body.contains("/delete")){
                 String[] params = body.split(" ");
-                sendMessage("You find: \n https://vk.com/club177931732?w=product-177931732_" + Integer.parseInt(params[1]) + "%2Fquery", item.getUserId());
-            } else sendMessage("Don't understand you, try again", item.getUserId());
+                deleteProduct(Long.parseLong(params[1]));
+                sendMessage(marketProps.getProperty("chat.message.delete.successmessage"), message.getUserId());
+            }
+            else sendMessage(marketProps.getProperty("chat.message.error"), message.getUserId());
         }
     }
 
+    //write
     @Override
     public List<Message> sendMessagesRestrictor(List<Message> messages) {
         return null;
     }
 
+    //refactor
     @Override
-    public void postProduct(Long userId, String name, String description, int categoryId, Long type, Float price, Photo photo) {
+    public int postProduct(Long userId, String name, String description, Long type, Float price, Photo photo) {
         try {
             int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
-            long productId = apiClient.market().add(userActor, -1 * groupID, name, description, categoryId, price, photoId).execute().getMarketItemId();
-            this.itemService.create(new Item(productId, userId, name, description, photoId, price, type));
+            int productID = apiClient.market().add(userActor, -1*groupID, name, description, type.intValue(), price, photoId).execute().getMarketItemId();
+            this.itemService.create(new Item((long) productID, userId, name, description, photoId, price, type));
+            return productID;
         } catch (IOException | ClientException | ApiException e) {
             log.error(e);
+            return 0;
         }
     }
 
-    @Override
-    public void postProduct(String name, String description, int categoryId, double price, Photo photo) {
-        try {
-            int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
-            apiClient.market().add(userActor, -1 * groupID, name, description, categoryId, price, photoId).execute();
-        } catch (IOException | ClientException | ApiException e) {
-            log.error(e);
-        }
-    }
-
-
+    //refactor
     @Override
     public void deleteProduct(Long id) {
         try {
             this.itemService.deleteById(id);
-            //MarketAddQuery a = new MarketAddQuery(apiClient, actor, 133773509);
-        } catch (Exception ex) {
-            log.error(ex);
+            apiClient.market().delete(userActor, -1*groupID, id.intValue()).execute();
+        } catch (ApiException | ClientException e) {
+            log.error(e);
         }
-
     }
 
+    //write
     @Override
     public void banUser(int id) {
         //ban
     }
 
+    //write
     @Override
     public void unBanUser(int id) {
         //unban
     }
 
+    @Override
+    public String getMarketInfo(String command) {
+        String property;
+        if (command.contains("add"))
+        {
+            property = "market.info.add";
+        }
+        else if (command.contains("delete"))
+        {
+            property = "market.info.delete";
+        }
+        else if (command.contains("edit"))
+        {
+            property = "market.info.edit";
+        }
+        else if (command.contains("category"))
+        {
+            property = "market.info.category";
+        }
+        else if (command.contains("find"))
+        {
+            property = "market.info.find";
+        }
+        else if (command.contains("reply"))
+        {
+            property = "market.info.reply";
+        }
+        else
+        {
+            property = "market.info";
+        }
+
+        String output = marketProps.getProperty(property);
+        log.info(output);
+        return output;
+    }
+
+    //remove
     @Override
     public void sendMessages(List<Message> messages) {
 
@@ -212,11 +319,13 @@ public class VkClientImpl implements VkClient {
 
     private URL getMaxSizedPhotoUrl(Photo photo) throws MalformedURLException, ClientException {
         URL url;
-        if (photo.getPhoto807() != null) {
+        if (photo.getPhoto807() != null){
             url = new URL(photo.getPhoto807());
-        } else if (photo.getPhoto604() != null) {
+        }
+        else if (photo.getPhoto604() != null) {
             url = new URL(photo.getPhoto604());
-        } else
+        }
+        else
             throw new ClientException("Low photo size");
         return url;
     }
