@@ -15,6 +15,7 @@ import com.vk.api.sdk.objects.messages.Dialog;
 import com.vk.api.sdk.objects.messages.Message;
 import com.vk.api.sdk.objects.messages.MessageAttachment;
 import com.vk.api.sdk.objects.photos.Photo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
@@ -42,7 +43,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Log4j2
 public class VkClientImpl implements VkClient {
 
@@ -67,7 +67,9 @@ public class VkClientImpl implements VkClient {
     private String userToken;
 
     @Autowired
-    public VkClientImpl(ItemService itemService) {
+    public VkClientImpl(BanService banService, RudeWordsFilter rudeWordsFilter, ItemService itemService) {
+        this.banService = banService;
+        this.rudeWordsFilter = rudeWordsFilter;
         this.itemService = itemService;
     }
 
@@ -137,28 +139,25 @@ public class VkClientImpl implements VkClient {
         List<MessageAttachment> list;
         for (Message message : messages) {
             body = message.getBody();
-			
-			
+
 			//rude words
             try {
                 rudeWordsFilter.assertSentenceIsPolite(body);
             } catch (RudeWordException e) {
-                log.error("User {} is not a polite guy", item.getUserId());
-                Integer warningsCount = banService.addWarning(item.getUserId().longValue());
-                if (banService.isUserBanned(item.getUserId().longValue())) {
-                    sendMessage("Ты забанен. Использовал в сообщениях матные слова " + warningsCount + " раз", item.getUserId());
+                log.error("User {} is not a polite guy", message.getUserId());
+                Integer warningsCount = banService.addWarning(message.getUserId().longValue());
+                if (banService.isUserBanned(message.getUserId().longValue())) {
+                    sendMessage("Ты забанен. Использовал в сообщениях матные слова " + warningsCount + " раз", message.getUserId());
                     continue;
                 }
-                sendMessage("Ты скоро будешь забанен. Допустимо предупреждений - " + MAX_ALLOWED_WARNINGS + ". Это уже предупреждение #" + warningsCount, item.getUserId());
+                sendMessage("Ты скоро будешь забанен. Допустимо предупреждений - " + 3 + ". Это уже предупреждение #" + warningsCount, message.getUserId());
                 continue;
             }
-            if (banService.isUserBanned(item.getUserId().longValue())) {
-                sendMessage("Ты забанен. Использовал в сообщениях матные слова " + banService.getWaqrningsCount(item.getUserId().longValue()) + " раз", item.getUserId());
+            if (banService.isUserBanned(message.getUserId().longValue())) {
+                sendMessage("Ты забанен. Использовал в сообщениях матные слова " + banService.getWaqrningsCount(message.getUserId().longValue()) + " раз", message.getUserId());
                 continue;
             }
-			
-			
-			
+
             list = message.getAttachments();
             if (body.equals("Начать")){
                 sendMessage(marketProps.getProperty("chat.message.welcome"), message.getUserId());
