@@ -2,6 +2,7 @@ package com.bot.vk.vkbot.service;
 
 import com.bot.vk.vkbot.exceptions.RudeWordException;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -9,10 +10,12 @@ import java.io.IOException;
 import com.bot.vk.vkbot.exceptions.RudeWordException;
 
 @Log4j2
-public class Filter {
+@Component
+public class RudeWordsFilter {
+
     String[] rudeWords = null;
 
-    public Filter() {
+    public RudeWordsFilter() {
         try {
             String str;
             BufferedReader br = new BufferedReader(new FileReader("src/main/resources/rudeWords.txt"));
@@ -26,7 +29,7 @@ public class Filter {
         }
     }
 
-    protected void check(String sentence) throws RudeWordException {
+    public void assertSentenceIsPolite(String sentence) throws RudeWordException {
         String[] words = sentence.toLowerCase().split("[,;:.!?\\s]+");
 
         for (String word : words) {

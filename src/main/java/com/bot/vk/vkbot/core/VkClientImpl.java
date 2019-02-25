@@ -2,6 +2,9 @@ package com.bot.vk.vkbot.core;
 
 import com.bot.vk.vkbot.core.client.VkClient;
 import com.vk.api.sdk.client.AbstractQueryBuilder;
+import com.bot.vk.vkbot.exceptions.RudeWordException;
+import com.bot.vk.vkbot.service.BanService;
+import com.bot.vk.vkbot.service.RudeWordsFilter;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -39,6 +42,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Log4j2
 public class VkClientImpl implements VkClient {
 
@@ -47,6 +51,8 @@ public class VkClientImpl implements VkClient {
     private UserActor userActor;
     private final ItemService itemService;
     private Properties marketProps = new Properties();
+	private final BanService banService;
+    private final RudeWordsFilter rudeWordsFilter;
 
     @Value("${bot.group.id}")
     private int groupID;
@@ -131,6 +137,28 @@ public class VkClientImpl implements VkClient {
         List<MessageAttachment> list;
         for (Message message : messages) {
             body = message.getBody();
+			
+			
+			//rude words
+            try {
+                rudeWordsFilter.assertSentenceIsPolite(body);
+            } catch (RudeWordException e) {
+                log.error("User {} is not a polite guy", item.getUserId());
+                Integer warningsCount = banService.addWarning(item.getUserId().longValue());
+                if (banService.isUserBanned(item.getUserId().longValue())) {
+                    sendMessage("Ты забанен. Использовал в сообщениях матные слова " + warningsCount + " раз", item.getUserId());
+                    continue;
+                }
+                sendMessage("Ты скоро будешь забанен. Допустимо предупреждений - " + MAX_ALLOWED_WARNINGS + ". Это уже предупреждение #" + warningsCount, item.getUserId());
+                continue;
+            }
+            if (banService.isUserBanned(item.getUserId().longValue())) {
+                sendMessage("Ты забанен. Использовал в сообщениях матные слова " + banService.getWaqrningsCount(item.getUserId().longValue()) + " раз", item.getUserId());
+                continue;
+            }
+			
+			
+			
             list = message.getAttachments();
             if (body.equals("Начать")){
                 sendMessage(marketProps.getProperty("chat.message.welcome"), message.getUserId());

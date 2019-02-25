@@ -11,6 +11,7 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findByUserId(Long userId);
 
+
     @Query(value = "select i.* from Item i join Type t on i.id_type = t.id where LOWER(i.name) like %?1% or LOWER(i.description) like %?1% or LOWER(t.name) like %?1% limit 10", nativeQuery=true)
     List<Item> findByString(String line);
 }
