@@ -1,8 +1,12 @@
 package com.bot.vk.vkbot.entity;
 
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 @Entity
 @Table(name = "Item")
@@ -10,7 +14,7 @@ import javax.persistence.*;
 @NoArgsConstructor
 public class Item{
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
     private Long id;
     @Column(name = "id_user")
     private Long userId;
@@ -23,7 +27,8 @@ public class Item{
     @Column(name = "id_type")
     private Long type;
 
-    public Item(Long userId, String name, String description, Integer pictureId, Float price, Long type) {
+    public Item(Long id, Long userId, String name, String description, Integer pictureId, Float price, Long type) {
+        this.id = id;
         this.userId = userId;
         this.name = name;
         this.description = description;
