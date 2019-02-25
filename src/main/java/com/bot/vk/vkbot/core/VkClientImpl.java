@@ -144,17 +144,18 @@ public class VkClientImpl implements VkClient {
             try {
                 rudeWordsFilter.assertSentenceIsPolite(body);
             } catch (RudeWordException e) {
-                log.error("User {} is not a polite guy", message.getUserId());
+                log.info("User {} is not a polite guy", message.getUserId());
                 Integer warningsCount = banService.addWarning(message.getUserId().longValue());
                 if (banService.isUserBanned(message.getUserId().longValue())) {
-                    sendMessage("Ты забанен. Использовал в сообщениях матные слова " + warningsCount + " раз", message.getUserId());
+                    sendMessage("бан", message.getUserId());
+                    try {
+                        apiClient.groups().banUser(userActor, groupID, message.getUserId()).comment("Вы были забанены за использование мата").execute();
+                    } catch (ApiException | ClientException e1) {
+                        e1.printStackTrace();
+                    }
                     continue;
                 }
-                sendMessage("Ты скоро будешь забанен. Допустимо предупреждений - " + 3 + ". Это уже предупреждение #" + warningsCount, message.getUserId());
-                continue;
-            }
-            if (banService.isUserBanned(message.getUserId().longValue())) {
-                sendMessage("Ты забанен. Использовал в сообщениях матные слова " + banService.getWaqrningsCount(message.getUserId().longValue()) + " раз", message.getUserId());
+                sendMessage(marketProps.getProperty("chat.message.ban.warning") + (Integer.parseInt(marketProps.getProperty("chat.message.ban.maxcount")) - warningsCount), message.getUserId());
                 continue;
             }
 

@@ -23,7 +23,7 @@ public class BanService {
     }
 
     public boolean isUserBanned(Long userId) {
-        return getWaqrningsCount(userId) > MAX_ALLOWED_WARNINGS;
+        return getWaqrningsCount(userId) >= MAX_ALLOWED_WARNINGS;
     }
 
     public Integer getWaqrningsCount(Long userId) {
