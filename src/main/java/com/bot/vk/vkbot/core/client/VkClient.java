@@ -1,8 +1,11 @@
 package com.bot.vk.vkbot.core.client;
 
+import com.vk.api.sdk.exceptions.ApiException;
+import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.objects.messages.Message;
 import com.vk.api.sdk.objects.photos.Photo;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface VkClient {
