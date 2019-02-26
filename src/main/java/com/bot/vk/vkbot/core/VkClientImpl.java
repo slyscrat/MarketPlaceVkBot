@@ -4,6 +4,7 @@ import com.bot.vk.vkbot.core.client.VkClient;
 import com.vk.api.sdk.client.AbstractQueryBuilder;
 import com.bot.vk.vkbot.exceptions.RudeWordException;
 import com.bot.vk.vkbot.service.BanService;
+import com.bot.vk.vkbot.validators.*;
 import com.bot.vk.vkbot.service.RudeWordsFilter;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
@@ -24,9 +25,12 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.hibernate.ObjectNotFoundException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 
 import com.bot.vk.vkbot.entity.Item;
@@ -47,6 +51,10 @@ import java.util.regex.Pattern;
 public class VkClientImpl implements VkClient {
 
     private final VkApiClient apiClient = new VkApiClient(HttpTransportClient.getInstance());
+    private final Validator addValidator;
+    private final Validator editValidator;
+    private final Validator findValidator;
+    private final Validator deleteValidator;
     private GroupActor groupActor;
     private UserActor userActor;
     private final ItemService itemService;
@@ -67,10 +75,14 @@ public class VkClientImpl implements VkClient {
     private String userToken;
 
     @Autowired
-    public VkClientImpl(BanService banService, RudeWordsFilter rudeWordsFilter, ItemService itemService) {
+    public VkClientImpl(BanService banService, RudeWordsFilter rudeWordsFilter, ItemService itemService, AddValidator addValidator, EditValidator editValidator, DeleteValidator deleteValidator, FindValidator findValidator) {
         this.banService = banService;
         this.rudeWordsFilter = rudeWordsFilter;
         this.itemService = itemService;
+        this.addValidator = addValidator;
+        this.editValidator = editValidator;
+        this.deleteValidator = deleteValidator;
+        this.findValidator = findValidator;
     }
 
     @PostConstruct
@@ -160,24 +172,19 @@ public class VkClientImpl implements VkClient {
             }
 
             list = message.getAttachments();
-            if (body.equals("Начать")){
+            if (body.equals("Начать")) {
                 sendMessage(marketProps.getProperty("chat.message.welcome"), message.getUserId());
-            }
-            else if (body.contains("/info"))
-            {
+            } else if (body.contains("/info")) {
                 sendMessage(getMarketInfo(body), message.getUserId());
-            }
-            else if (body.contains("/edit"))
-            {
+            } else if (body.contains("/edit") && editValidator.isValid(body) && isExistAndOwner(message.getUserId(), 12L)) {
                 //edit
-            }
-            else if (body.contains("/add"))
-            {
+                // CHANGE itemId in isExistAndOwner !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            } else if (body.contains("/add") && addValidator.isValid(body)) {
                 Pattern pattern = Pattern.compile("(/add)\\ \\\"([^\"]{4,100})\\\"\\ \\\"([^\"]{10,})\\\"\\ ([0-9]+)\\ ([0-9.]+)");
                 Matcher matcher = pattern.matcher(body);
                 matcher.find();
 
-                int productId  = postProduct(message.getUserId().longValue(),
+                int productId = postProduct(message.getUserId().longValue(),
                         matcher.group(2),
                         matcher.group(3),
                         Long.parseLong(matcher.group(4)),
@@ -186,8 +193,7 @@ public class VkClientImpl implements VkClient {
                 sendMessage(marketProps.getProperty("chat.message.add.successmessage.id") +
                         " " + productId + "\n"
                         + marketProps.getProperty("chat.message.add.successmessage.warning"), message.getUserId());
-            }
-            else if (body.contains("/find")){
+            } else if (body.contains("/find") && findValidator.isValid(body)) {
                 //regex
                 Pattern pattern = Pattern.compile("(\\/find)\\ \\\"([^\\\"]+)\\\"");
                 Matcher matcher = pattern.matcher(body);
@@ -198,25 +204,49 @@ public class VkClientImpl implements VkClient {
                 String messageBody = "";
                 if (items.size() != 0) {
                     //sendMessage("1) " + items.get(0).getName() + " (" + items.get(0).getPrice() + " рублей)\n", item.getUserId());
-                    for (int i = 0; i < items.size(); i++)
-                    {
-                        messageBody += (i+1) +  ") " + items.get(i).getName() + " (" + items.get(i).getPrice() + " рублей)\n";
+                    for (int i = 0; i < items.size(); i++) {
+                        messageBody += (i + 1) + ") " + items.get(i).getName() + " (" + items.get(i).getPrice() + " рублей)\n";
                         attachments.add("photo-" + groupID + "_" + items.get(i).getPictureId());
                     }
                     sendMessage(messageBody, attachments, message.getUserId());
-                }
-                else
-                {
+                } else {
                     sendMessage("Ничего не найдено", message.getUserId());
                 }
-            }
-            else if (body.contains("/delete")){
+            } else if (body.contains("/delete") && deleteValidator.isValid(body)) {
                 String[] params = body.split(" ");
-                deleteProduct(Long.parseLong(params[1]));
-                sendMessage(marketProps.getProperty("chat.message.delete.successmessage"), message.getUserId());
+                Long itemId = Long.parseLong(params[1]);
+                if (isExistAndOwner(message.getUserId(), itemId)) {
+                    deleteProduct(itemId);
+                    sendMessage(marketProps.getProperty("chat.message.delete.successmessage"), message.getUserId());
+                }
+
+            } else {
+                sendMessage(marketProps.getProperty("chat.message.error"), message.getUserId());
             }
-            else sendMessage(marketProps.getProperty("chat.message.error"), message.getUserId());
+            /*  catch(Exception ex){
+                log.error(ex);
+                sendMessage("Возникла ошибка! Пожалуйста, убедитесь в правильности введенной команды", message.getUserId());
+                sendMessage(marketProps.getProperty("market.info." + body.split(" ")[0].substring(1)), message.getUserId());
+            }*/
         }
+    }
+
+    public boolean isExistAndOwner(Integer userId, Long itemId){
+        try{
+            if (this.itemService.getById(itemId).getUserId().longValue() == userId)
+                return true;
+            else
+                throw new Exception("Вы не можете удалить данный товар, так как не являетесь его владельцем!");
+        }
+        catch(ObjectNotFoundException ex){
+            log.error(ex);
+            sendMessage("Товар с данным идентификатором не найден!", userId);
+        }
+        catch(Exception ex){
+            log.error(ex);
+            sendMessage(ex.getMessage(), userId);
+        }
+        return false;
     }
 
     //write
