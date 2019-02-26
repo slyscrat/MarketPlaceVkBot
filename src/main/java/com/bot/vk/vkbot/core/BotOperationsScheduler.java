@@ -30,7 +30,7 @@ public class BotOperationsScheduler {
     }
 
     @Scheduled(fixedDelayString = "${bot.item_post_interval}")
-    public void postNewestProducts() throws Exception {
+    public void postNewestProducts() {
         log.info("Posting latest product");
         vkClient.postWall();
     }

@@ -1,41 +1,31 @@
 package com.bot.vk.vkbot.core.client;
 
-import com.vk.api.sdk.exceptions.ApiException;
-import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.objects.messages.Message;
 import com.vk.api.sdk.objects.photos.Photo;
 
-import java.io.IOException;
 import java.util.List;
 
 public interface VkClient {
 
-    //public
-    //effective
-    List<Message> readMessages(); //реализовано
+    List<Message> readMessages();
 
-    void replyForMessages(List<Message> messages); //частично реализовано (буду доделывать)
+    void replyForMessages(List<Message> messages);
 
-    List<Message> sendMessagesRestrictor(List<Message> messages);
-    // на входе лист с сообщениями (одинаковые для разных user id)
-    //отправка первых 100 сообщений юзерам (ограничение в 100) одним запросом (использовать private sendMessages, кидая туда лист из 100 сообщений )
-    //возвращает лист с сообщениями кроме первых 100
-    // взял первые 100 -> отправил -> вернул оставшиеся
+    void sendMessage(String message, int userId);
 
-    public void sendMessage(String message, int userId);
+    void sendMessage(String message, List<String> attachment, int userId);
 
-	int postProduct(Long userId, String name, String description, Long type, Float price, Photo photo);//реализовано
+	int postProduct(Long userId, String name, String description, Long type, Float price, Photo photo);
 
     void deleteProduct(Long Id);
 
     void banUser(int id);
 
-    void unBanUser(int id);
-
     String getMarketInfo(String command);
-    //private
-    //effective
-    void sendMessages(List<Message> messages); //вызывается в sendMessagesRestrictor
 
     void postWall();
+
+    List<Message> sendMessagesRestrictor(List<Message> messages); // not yet
+
+    void sendMessages(List<Message> messages); //вызывается в sendMessagesRestrictor (not yet)
 }

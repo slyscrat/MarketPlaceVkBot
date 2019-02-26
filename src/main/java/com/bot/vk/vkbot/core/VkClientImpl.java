@@ -121,6 +121,7 @@ public class VkClientImpl implements VkClient {
         }
     }
 
+    @Override
     public void sendMessage(String message, List<String> attachment, int userId) {
         Random random = new Random();
         try {
@@ -161,7 +162,7 @@ public class VkClientImpl implements VkClient {
                     banUser(message.getUserId());
                     continue;
                 }
-                sendMessage(marketProps.getProperty("chat.message.ban.warning") + (Integer.parseInt(marketProps.getProperty("chat.message.ban.maxcount")) - warningsCount), message.getUserId());
+                sendMessage(marketProps.getProperty("chat.message.ban.warning") + (Integer.parseInt(marketProps.getProperty("chat.message.ban.max_count")) - warningsCount), message.getUserId());
                 continue;
             }
 
@@ -200,9 +201,9 @@ public class VkClientImpl implements VkClient {
                         Long.parseLong(matcher.group(4)),
                         Float.parseFloat(matcher.group(5)),
                         list.get(0).getPhoto());
-                sendMessage(marketProps.getProperty("chat.message.add.successmessage.id") +
+                sendMessage(marketProps.getProperty("chat.message.add.success_message.id") +
                         " " + productId + "\n"
-                        + marketProps.getProperty("chat.message.add.successmessage.warning"), message.getUserId());
+                        + marketProps.getProperty("chat.message.add.success_message.warning"), message.getUserId());
             }
             else if (body.contains("/find") && findValidator.isValid(body)){
                 //regex
@@ -212,13 +213,12 @@ public class VkClientImpl implements VkClient {
                 log.info(matcher.group(2).toLowerCase());
                 List<Item> items = itemService.getByString(matcher.group(2).toLowerCase());
                 List<String> attachments = new ArrayList<>();
-                String messageBody = "";
+                String messageBody = "Вот что мы нашли для вас:";
                 if (items.size() != 0) {
                     //sendMessage("1) " + items.get(0).getName() + " (" + items.get(0).getPrice() + " рублей)\n", item.getUserId());
                     for (int i = 0; i < items.size(); i++)
                     {
-                        messageBody += (i+1) +  ") " + items.get(i).getName() + " (" + items.get(i).getPrice() + " рублей)\n";
-                        attachments.add("photo-" + groupID + "_" + items.get(i).getPictureId());
+                        attachments.add("market-" + groupID + "_" + items.get(i).getId());
                     }
                     sendMessage(messageBody, attachments, message.getUserId());
                 }
@@ -232,14 +232,14 @@ public class VkClientImpl implements VkClient {
                 Long itemId = Long.parseLong(params[1]);
                 if (isExistAndOwner(message.getUserId(), itemId)) {
                     deleteProduct(itemId);
-                    sendMessage(marketProps.getProperty("chat.message.delete.successmessage"), message.getUserId());
+                    sendMessage(marketProps.getProperty("chat.message.delete.success_message"), message.getUserId());
                 }
 			}
             else sendMessage(marketProps.getProperty("chat.message.error"), message.getUserId());
         }
     }
 	
-	public boolean isExistAndOwner(Integer userId, Long itemId){
+	private boolean isExistAndOwner(Integer userId, Long itemId){
         try{
             if (this.itemService.getById(itemId).getUserId().longValue() == userId)
                 return true;
@@ -296,12 +296,6 @@ public class VkClientImpl implements VkClient {
         } catch (ApiException | ClientException e1) {
             e1.printStackTrace();
         }
-    }
-
-    //write
-    @Override
-    public void unBanUser(int id) {
-        //unban
     }
 
     @Override
