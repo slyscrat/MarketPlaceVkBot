@@ -34,4 +34,5 @@ public interface VkClient {
     //effective
     void sendMessages(List<Message> messages); //вызывается в sendMessagesRestrictor
 
+    void postWall();
 }

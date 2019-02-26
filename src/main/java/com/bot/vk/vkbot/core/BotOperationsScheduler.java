@@ -28,4 +28,10 @@ public class BotOperationsScheduler {
         List<Message> messages = vkClient.readMessages();
         vkClient.replyForMessages(messages);
     }
+
+    @Scheduled(fixedDelayString = "${bot.item_post_interval}")
+    public void postNewestProducts() throws Exception {
+        log.info("Posting latest product");
+        vkClient.postWall();
+    }
 }
