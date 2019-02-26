@@ -406,4 +406,14 @@ public class VkClientImpl implements VkClient {
 
         return new JSONObject(outResponse.toString());
     }
+
+    public void postWall() throws ClientException, ApiException {
+        List<Item> items = this.itemService.getAll();
+        if (!items.isEmpty()) {
+            Long itemId = items.get(items.size() - 1).getId();
+            this.apiClient.wall().post(this.userActor).ownerId(-1 * this.groupID).fromGroup(true).message("Оцените последний добавенный товар!!!").attachments("market-" + groupID + "_" + itemId).execute();
+        }else{
+            log.info("На данный момент в базе нету предметов");
+        }
+    }
 }
