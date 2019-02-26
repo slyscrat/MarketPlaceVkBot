@@ -121,6 +121,7 @@ public class VkClientImpl implements VkClient {
         }
     }
 
+    @Override
     public void sendMessage(String message, List<String> attachment, int userId) {
         Random random = new Random();
         try {
@@ -156,44 +157,55 @@ public class VkClientImpl implements VkClient {
             try {
                 rudeWordsFilter.assertSentenceIsPolite(body);
             } catch (RudeWordException e) {
-                log.info("User {} is not a polite guy", message.getUserId());
                 Integer warningsCount = banService.addWarning(message.getUserId().longValue());
                 if (banService.isUserBanned(message.getUserId().longValue())) {
-                    sendMessage("бан", message.getUserId());
-                    try {
-                        apiClient.groups().banUser(userActor, groupID, message.getUserId()).comment("Вы были забанены за использование мата").execute();
-                    } catch (ApiException | ClientException e1) {
-                        e1.printStackTrace();
-                    }
+                    banUser(message.getUserId());
                     continue;
                 }
-                sendMessage(marketProps.getProperty("chat.message.ban.warning") + (Integer.parseInt(marketProps.getProperty("chat.message.ban.maxcount")) - warningsCount), message.getUserId());
+                sendMessage(marketProps.getProperty("chat.message.ban.warning") + (Integer.parseInt(marketProps.getProperty("chat.message.ban.max_count")) - warningsCount), message.getUserId());
                 continue;
             }
 
             list = message.getAttachments();
-            if (body.equals("Начать")) {
+
+            if (list != null && list.get(0).getMarket() != null)
+            {
+                Item item = itemService.getById(list.get(0).getMarket().getId().longValue());
+
+                //send ownerId to customer
+                sendMessage(marketProps.getProperty("chat.message.reply.info.customer") + item.getUserId(), message.getUserId());
+
+                //send notice to seller
+                sendMessage(marketProps.getProperty("chat.message.reply.info.seller") + message.getUserId() + "\n\nСообщение покупателя:\n" + message.getBody(), item.getUserId().intValue());
+            }
+            else if (body.equals("Начать")){
                 sendMessage(marketProps.getProperty("chat.message.welcome"), message.getUserId());
-            } else if (body.contains("/info")) {
+            }
+            else if (body.contains("/info"))
+            {
                 sendMessage(getMarketInfo(body), message.getUserId());
-            } else if (body.contains("/edit") && editValidator.isValid(body) && isExistAndOwner(message.getUserId(), 12L)) {
+            }
+            else if (body.contains("/edit") && editValidator.isValid(body) && isExistAndOwner(message.getUserId(), 12L))
+            {
                 //edit
-                // CHANGE itemId in isExistAndOwner !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            } else if (body.contains("/add") && addValidator.isValid(body)) {
+            }
+            else if (body.contains("/add") && addValidator.isValid(body))
+            {
                 Pattern pattern = Pattern.compile("(/add)\\ \\\"([^\"]{4,100})\\\"\\ \\\"([^\"]{10,})\\\"\\ ([0-9]+)\\ ([0-9.]+)");
                 Matcher matcher = pattern.matcher(body);
                 matcher.find();
 
-                int productId = postProduct(message.getUserId().longValue(),
+                int productId  = postProduct(message.getUserId().longValue(),
                         matcher.group(2),
                         matcher.group(3),
                         Long.parseLong(matcher.group(4)),
                         Float.parseFloat(matcher.group(5)),
                         list.get(0).getPhoto());
-                sendMessage(marketProps.getProperty("chat.message.add.successmessage.id") +
+                sendMessage(marketProps.getProperty("chat.message.add.success_message.id") +
                         " " + productId + "\n"
-                        + marketProps.getProperty("chat.message.add.successmessage.warning"), message.getUserId());
-            } else if (body.contains("/find") && findValidator.isValid(body)) {
+                        + marketProps.getProperty("chat.message.add.success_message.warning"), message.getUserId());
+            }
+            else if (body.contains("/find") && findValidator.isValid(body)){
                 //regex
                 Pattern pattern = Pattern.compile("(\\/find)\\ \\\"([^\\\"]+)\\\"");
                 Matcher matcher = pattern.matcher(body);
@@ -201,37 +213,33 @@ public class VkClientImpl implements VkClient {
                 log.info(matcher.group(2).toLowerCase());
                 List<Item> items = itemService.getByString(matcher.group(2).toLowerCase());
                 List<String> attachments = new ArrayList<>();
-                String messageBody = "";
+                String messageBody = "Вот что мы нашли для вас:";
                 if (items.size() != 0) {
                     //sendMessage("1) " + items.get(0).getName() + " (" + items.get(0).getPrice() + " рублей)\n", item.getUserId());
-                    for (int i = 0; i < items.size(); i++) {
-                        messageBody += (i + 1) + ") " + items.get(i).getName() + " (" + items.get(i).getPrice() + " рублей)\n";
-                        attachments.add("photo-" + groupID + "_" + items.get(i).getPictureId());
+                    for (int i = 0; i < items.size(); i++)
+                    {
+                        attachments.add("market-" + groupID + "_" + items.get(i).getId());
                     }
                     sendMessage(messageBody, attachments, message.getUserId());
-                } else {
+                }
+                else
+                {
                     sendMessage("Ничего не найдено", message.getUserId());
                 }
-            } else if (body.contains("/delete") && deleteValidator.isValid(body)) {
+            }
+            else if (body.contains("/delete") && deleteValidator.isValid(body)){
                 String[] params = body.split(" ");
                 Long itemId = Long.parseLong(params[1]);
                 if (isExistAndOwner(message.getUserId(), itemId)) {
                     deleteProduct(itemId);
-                    sendMessage(marketProps.getProperty("chat.message.delete.successmessage"), message.getUserId());
+                    sendMessage(marketProps.getProperty("chat.message.delete.success_message"), message.getUserId());
                 }
-
-            } else {
-                sendMessage(marketProps.getProperty("chat.message.error"), message.getUserId());
-            }
-            /*  catch(Exception ex){
-                log.error(ex);
-                sendMessage("Возникла ошибка! Пожалуйста, убедитесь в правильности введенной команды", message.getUserId());
-                sendMessage(marketProps.getProperty("market.info." + body.split(" ")[0].substring(1)), message.getUserId());
-            }*/
+			}
+            else sendMessage(marketProps.getProperty("chat.message.error"), message.getUserId());
         }
     }
-
-    public boolean isExistAndOwner(Integer userId, Long itemId){
+	
+	private boolean isExistAndOwner(Integer userId, Long itemId){
         try{
             if (this.itemService.getById(itemId).getUserId().longValue() == userId)
                 return true;
@@ -283,13 +291,11 @@ public class VkClientImpl implements VkClient {
     //write
     @Override
     public void banUser(int id) {
-        //ban
-    }
-
-    //write
-    @Override
-    public void unBanUser(int id) {
-        //unban
+        try {
+            apiClient.groups().banUser(userActor, groupID, id).comment("Вы были забанены за использование нецензурных выражений").execute();
+        } catch (ApiException | ClientException e1) {
+            e1.printStackTrace();
+        }
     }
 
     @Override
@@ -407,11 +413,16 @@ public class VkClientImpl implements VkClient {
         return new JSONObject(outResponse.toString());
     }
 
-    public void postWall() throws ClientException, ApiException {
+    @Override
+    public void postWall() {
         List<Item> items = this.itemService.getAll();
         if (!items.isEmpty()) {
             Long itemId = items.get(items.size() - 1).getId();
-            this.apiClient.wall().post(this.userActor).ownerId(-1 * this.groupID).fromGroup(true).message("Оцените последний добавенный товар!!!").attachments("market-" + groupID + "_" + itemId).execute();
+            try {
+                this.apiClient.wall().post(this.userActor).ownerId(-1 * this.groupID).fromGroup(true).message("Оцените последний добавенный товар!!!").attachments("market-" + groupID + "_" + itemId).execute();
+            } catch (ApiException | ClientException e) {
+                e.printStackTrace();
+            }
         }else{
             log.info("На данный момент в базе нету предметов");
         }
