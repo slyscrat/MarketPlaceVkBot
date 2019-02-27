@@ -312,7 +312,8 @@ public class VkClientImpl implements VkClient {
     @Override
     public void banUser(int id) {
         try {
-            apiClient.groups().banUser(userActor, groupID, id).comment("Вы были забанены за использование нецензурных выражений").execute();
+            sendMessage(marketProps.getProperty("chat.message.ban"), id);
+            apiClient.groups().banUser(userActor, groupID, id).comment(marketProps.getProperty("chat.message.ban")).execute();
         } catch (ApiException | ClientException e1) {
             e1.printStackTrace();
         }
