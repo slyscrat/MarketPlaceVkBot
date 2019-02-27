@@ -61,7 +61,6 @@ public class VkClientImpl implements VkClient {
     private Properties marketProps = new Properties();
 	private final BanService banService;
     private final RudeWordsFilter rudeWordsFilter;
-    private long lastPostedItemId = 0;
 
     @Value("${bot.group.id}")
     private int groupID;
@@ -278,7 +277,7 @@ public class VkClientImpl implements VkClient {
     public void editProduct(Long userId, Long productID, String name, String description, Long type, Float price, int photoId) {
         try {
             apiClient.market().edit(userActor, -1*groupID, productID.intValue(), name, description, type.intValue(), price, photoId).execute();
-            this.itemService.create(new Item(productID, userId, name, description, photoId, price, type));
+            itemService.create(new Item(productID, userId, name, description, photoId, price, type));
         } catch (ClientException | ApiException e) {
             log.error(e);
         }
@@ -290,7 +289,7 @@ public class VkClientImpl implements VkClient {
         try {
             int photoId = getMarketUploadedPhotoId(photo, true); //api user call +2
             int productID = apiClient.market().add(userActor, -1*groupID, name, description, type.intValue(), price, photoId).execute().getMarketItemId();
-            this.itemService.create(new Item((long) productID, userId, name, description, photoId, price, type));
+            itemService.create(new Item((long) productID, userId, name, description, photoId, price, type));
             return productID;
         } catch (IOException | ClientException | ApiException e) {
             log.error(e);
@@ -438,15 +437,17 @@ public class VkClientImpl implements VkClient {
     public void postWall() {
         List<Item> items = this.itemService.getAll();
         if (!items.isEmpty()) {
-            Long itemId = items.get(items.size() - 1).getId();
-            if (itemId != lastPostedItemId)
+            Item zeroItem = items.get(0);
+            Item item = items.get(items.size() - 1);
+            log.info(item.getPictureId().longValue() + " | " + zeroItem.getPictureId().longValue());
+            if (item.getPictureId().longValue() != zeroItem.getPictureId().longValue())
             {
                 try {
-                    this.apiClient.wall().post(this.userActor).ownerId(-1 * this.groupID).fromGroup(true).message("Оцените последний добавленный товар!").attachments("market-" + groupID + "_" + itemId).execute();
+                    this.apiClient.wall().post(this.userActor).ownerId(-1 * this.groupID).fromGroup(true).message("Оцените последний добавленный товар!").attachments("market-" + groupID + "_" + item.getId()).execute();
+                    itemService.create(new Item(zeroItem.getId(), item.getUserId(), item.getName(), item.getDescription(), item.getPictureId(), item.getPrice(), item.getType()));
                 } catch (ApiException | ClientException e) {
                     e.printStackTrace();
                 }
-                lastPostedItemId = itemId;
             }
         }else{
             log.info("На данный момент в базе нету предметов");
